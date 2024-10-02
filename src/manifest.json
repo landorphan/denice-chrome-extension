@@ -9,6 +9,16 @@
     "background": {
         "service_worker": "background.js"
     },
+    "permissions": [
+        "cookies",
+        "storage",
+        "tabs"
+    ],
+    "host_permissions": [
+        "http://localhost:3000/*",
+        "https://www.nuevco.com/*",
+        "https://www.dev.nuevco.com/*"
+    ],
     "content_scripts": [
         {
             "matches": ["<all_urls>"],

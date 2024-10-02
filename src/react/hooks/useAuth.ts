@@ -1,4 +1,4 @@
-// /src/react/hooks/useAuth.ts
+// src/react/hooks/useAuth.ts
 
 import { useState, useEffect } from 'react';
 import { checkAuthStatus } from '../services/authService';  // Import the authService

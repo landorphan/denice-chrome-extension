@@ -9,7 +9,7 @@ const apiHost = process.env.API_HOST || 'http://localhost:3000'; // Default API 
 export const checkAuthStatus = async (): Promise<boolean> => {
     try {
         const response = await fetch(`${apiHost}/api/denice`, {
-            method: 'HEAD',
+            method: 'GET',
             credentials: 'include', // Include cookies in the request
         });
 
