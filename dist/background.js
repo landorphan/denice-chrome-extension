@@ -1,1 +1,0 @@
-chrome.runtime.onMessage.addListener((function(n,o,e){"login"===n.action&&chrome.tabs.create({url:"".concat("http://localhost:3000","/my")},(function(n){console.log("Login page opened in new tab:",n)}))}));

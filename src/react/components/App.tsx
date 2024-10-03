@@ -3,6 +3,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { Box, Button } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import SummarizeIcon from '@mui/icons-material/Summarize';
+import SaveIcon from '@mui/icons-material/Save';
 import useAuth from '../hooks/useAuth';
 import AuthGuard from './AuthGuard';
 
@@ -15,36 +16,73 @@ const theme = createTheme({
 const App = () => {
     const { isAuthenticated, refreshAuthStatus } = useAuth();
     const [summary, setSummary] = useState<string | null>(null);
+    const [sourceContent, setSourceContent] = useState<string | null>(null);  // Track the original content
+    const [sourceUrl, setSourceUrl] = useState<string | null>(null);  // Track the original URL
 
-    // Function to send the current page for summarization
+    // Function to gather page data and summarize it
     const sendPageForSummary = async () => {
         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
         const activeTab = tabs[0];
-        chrome.tabs.sendMessage(activeTab.id || 0, { action: 'summarize' });
+
+        if (activeTab?.id) {
+            // Send a message to the content script to gather page data
+            chrome.tabs.sendMessage(activeTab.id, { action: 'gatherPageData' }, async (response) => {
+                if (response) {
+                    setSourceContent(response.content);  // Save the cleaned page content
+                    setSourceUrl(response.url);  // Save the page URL
+                    
+                    // Fetch the summary from the backend
+                    const apiHost = 'http://localhost:3000';  // Adjust this as needed
+                    const summaryResponse = await fetch(`${apiHost}/api/denice/summarize`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            content: response.content,
+                            url: response.url
+                        }),
+                    });
+
+                    const result = await summaryResponse.json();
+                    setSummary(result.summary || 'No summary available');
+                } else {
+                    console.error("Failed to gather page data.");
+                }
+            });
+        } else {
+            console.error("Unable to retrieve the active tab.");
+        }
     };
 
+    const saveSummary = async () => {
+        if (summary && sourceContent && sourceUrl) {
+            const apiHost = 'http://localhost:3000';  // Adjust this as needed
+            const saveResponse = await fetch(`${apiHost}/api/denice/summarize/save`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    summary: summary,
+                    source: sourceContent,  // Changed 'content' to 'source' to match server-side
+                    url: sourceUrl,
+                }),
+            });
+    
+            const result = await saveResponse.json();
+            alert(result.message || 'Error saving content');
+        } else {
+            console.error("Summary or content missing.");
+        }
+    };
+    
     // Handle login button click
     const handleLogin = async () => {
         await refreshAuthStatus();
-
-        // If the user is not authenticated, trigger the login event
         if (!isAuthenticated) {
             chrome.runtime.sendMessage({ action: 'login' });
         }
     };
 
-    // Listen for messages from the extension
-    useEffect(() => {
-        chrome.runtime.onMessage.addListener((message) => {
-            if (message.summary) {
-                setSummary(message.summary);
-            }
-        });
-    }, []);
-
     return (
         <ThemeProvider theme={theme}>
-            {/* Main container with Denice Banner */}
             <Box
                 sx={{
                     minWidth: '450px',
@@ -68,9 +106,7 @@ const App = () => {
                     }}
                 />
 
-                {/* AuthGuard wraps the main content to enforce login */}
                 <AuthGuard>
-                    {/* Login button when not authenticated */}
                     {!isAuthenticated && (
                         <Button
                             variant="contained"
@@ -81,9 +117,9 @@ const App = () => {
                         </Button>
                     )}
 
-                    {/* Summarize button when authenticated */}
                     {isAuthenticated && (
-                        <>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            {/* Summarize Button */}
                             <IconButton
                                 onClick={sendPageForSummary}
                                 sx={{
@@ -99,14 +135,33 @@ const App = () => {
                                 <SummarizeIcon />
                             </IconButton>
 
-                            {/* Display summary content */}
+                            {/* Save Button, to the left of the Summarize Button */}
                             {summary && (
-                                <Box mt={4}>
-                                    <Box sx={{ fontSize: '18px', fontWeight: 'bold' }}>Summary:</Box>
-                                    <Box sx={{ fontSize: '16px' }}>{summary}</Box>
-                                </Box>
+                                <IconButton
+                                    onClick={saveSummary}
+                                    sx={{
+                                        backgroundColor: '#4caf50',
+                                        color: '#fff',
+                                        borderRadius: '50px',
+                                        padding: '10px 20px',
+                                        '&:hover': {
+                                            backgroundColor: '#388e3c',
+                                        },
+                                        marginLeft: '10px',  // Adjust positioning
+                                    }}
+                                >
+                                    <SaveIcon />
+                                </IconButton>
                             )}
-                        </>
+                        </Box>
+                    )}
+
+                    {/* Display the summary */}
+                    {summary && (
+                        <Box mt={4}>
+                            <Box sx={{ fontSize: '18px', fontWeight: 'bold' }}>Summary:</Box>
+                            <Box sx={{ fontSize: '16px' }}>{summary}</Box>
+                        </Box>
                     )}
                 </AuthGuard>
             </Box>
