@@ -1,4 +1,4 @@
-import React, { useState, Suspense, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { Box, Button, IconButton } from '@mui/material';
 import SummarizeIcon from '@mui/icons-material/Summarize';
@@ -6,7 +6,8 @@ import SaveIcon from '@mui/icons-material/Save';
 import useAuth from '../hooks/useAuth';
 import AuthGuard from './AuthGuard';
 import { DeniceSummaryApi } from '../services/DeniceSummaryApi';
-import { DeepChat } from 'deep-chat-react';
+import { DeepChat } from 'deep-chat-react'; 
+import { SummarizedDocument } from '../model/documents';
 
 const theme = createTheme({
   palette: {
@@ -14,20 +15,57 @@ const theme = createTheme({
   },
 });
 
+// Set the assistant name as a variable
+const ASSISTANT_NAME = 'Denice_v0.0.1-Chrome-Extension';
+
 const App = () => {
   const { isAuthenticated, refreshAuthStatus } = useAuth();
-  const [summary, setSummary] = useState<string | null>(null);
+  const [summary, setSummary] = useState<SummarizedDocument | null>(null);
   const [sourceContent, setSourceContent] = useState<string | null>(null);
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const [hasSummarized, setHasSummarized] = useState<boolean>(false);
   const [chatHistory, setChatHistory] = useState<any[]>([]);
-
+  const [loaded, setLoaded] = useState<boolean>(false);
+  const apiHost = process.env.API_HOST || 'http://localhost:3000'; // Fallback in case environment variable is not set
+  
   const api = new DeniceSummaryApi();
   useEffect(() => {
     document.body.style.overflow = "hidden";
-}, []);
+  }, []);
 
 
+
+  // Fetch chat history from the API and set it
+  useEffect(() => {
+    async function fetchData(): Promise<any[]> {
+      try {
+        if (!loaded) {
+          console.log('fetching chat history');
+          const initResponse = await fetch(`${apiHost}/api/chat/init?a=${ASSISTANT_NAME}`, {});
+          const data = await initResponse.json();
+          setLoaded(true);
+          setChatHistory(data);
+          return data;
+        } else {
+          console.log('chat history already loaded');
+        }
+      } catch (error) {
+        console.error(error);
+        setLoaded(true);
+        const data = [
+          {"text": "Hello, I'm Denice, your research assistant at Nuevco. I'm here to help you.", "role": "ai"}
+        ];
+        setChatHistory(data);
+        return data;
+      }
+      return [];
+    }
+    fetchData().then((data) => {
+        setLoaded(true);
+    });
+  }, [loaded]);
+
+  // Function to send page for summary
   const sendPageForSummary = async () => {
     console.log('Sending page for summary...');
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -44,16 +82,13 @@ const App = () => {
             setSourceUrl(response.url);
 
             try {
-              const resultSummary = await api.summarizePage(
-                response.content,
-                response.url
-              );
+              const resultSummary = await api.summarizePage(response);
+              
               setSummary(resultSummary);
               setHasSummarized(true);
-              // Display the summary as a message in the chat
               setChatHistory((prev) => [
                 ...prev,
-                { role: 'assistant', text: resultSummary },
+                { role: 'assistant', text: resultSummary.summary },
               ]);
             } catch (error) {
               console.error(error);
@@ -72,11 +107,11 @@ const App = () => {
     if (summary && sourceContent && sourceUrl) {
       try {
         const message = await api.saveSummary(
-          summary,
-          sourceContent,
-          sourceUrl
-        );
-        alert(message);
+          summary);
+        setChatHistory((prev) => [
+            ...prev,
+            { role: 'assistant', text: message },
+          ]);
         setHasSummarized(false); // Reset to allow summarizing again
       } catch (error) {
         console.error(error);
@@ -99,7 +134,6 @@ const App = () => {
 
     try {
       const results = await api.searchSummaries(message) as any;
-      // Format the search results
       const formattedResults = results.results
         .map((result: any) => {
           return `Score: ${result.score}\nURL: ${result.url}\nSummary: ${result.summary}`;
@@ -119,6 +153,9 @@ const App = () => {
     }
   };
 
+  const url = `${apiHost}/api/chat?a=${ASSISTANT_NAME}`;
+  console.log('url', url);
+  
   return (
     <ThemeProvider theme={theme}>
       <Box
@@ -126,9 +163,6 @@ const App = () => {
           width: '450px', // Keep your exact width
           height: '575px', // Keep your exact height
           padding: '0',
-        //   display: 'flex',
-        //   flexDirection: 'column',
-        //   position: 'relative',
           overflow: 'hidden'
         }}
       >
@@ -162,7 +196,7 @@ const App = () => {
               '&:hover': {
                 backgroundColor: hasSummarized ? '#388e3c' : '#1565c0',
               },
-              zIndex: 1001, // Ensure it's above the logo and chat
+              zIndex: 1001,
             }}
           >
             {hasSummarized ? <SaveIcon /> : <SummarizeIcon />}
@@ -177,7 +211,7 @@ const App = () => {
               onClick={handleLogin}
               sx={{
                 position: 'absolute',
-                top: '120px', // Ensure it's under the logo
+                top: '120px',
                 zIndex: 1001,
               }}
             >
@@ -188,24 +222,34 @@ const App = () => {
           {isAuthenticated && (
             <Box
               sx={{
-                paddingTop: '110px', // Ensure it's below the logo
+                paddingTop: '110px',
                 left: 0,
-                width: '100%%',
+                width: '100%',
                 height: '475px',
                 display: 'flex',
                 flexDirection: 'column',
-                overflow: 'hidden', // Ensure no extra scroll on outer container
+                overflow: 'hidden',
               }}
             >
-              <Suspense fallback={<div>Loading Chat...</div>}>
+              <Suspense
+                fallback={<div>Loading Chat...</div>}>
                 <DeepChat
                     style={{
                         borderRadius: '10px',
                         width: '440px',
-                        height: '460px', // Use exact size you had for the chat
+                        height: '460px',
                     }}
                     history={chatHistory}
-                    textInput={{ placeholder: { text: 'Welcome to the demo!' } }}
+                    messageStyles={{"default": 
+                        {"ai": { "bubble": { 
+                            "minWidth": "95%", 
+                            "width" : "95%" 
+                        }, "outerContainer": { "width" : "95%", "padding": "10px" }, "innerContainer": { "width" : "100%"} }, "shared": {"innerContainer": {"fontSize": "1rem" }}}}}
+                    textInput={{
+                        disabled: !loaded && !!chatHistory.length, 
+                        placeholder: { text: 'Welcome to the demo!' } 
+                    }}
+                    connect={{ url: url, additionalBodyProps: { model: 'gpt-4o-mini' } }}
                 />
               </Suspense>
             </Box>

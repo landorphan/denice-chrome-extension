@@ -2,23 +2,13 @@
     "manifest_version": 3,
     "name": "Denice.ai Chrome Extension",
     "description": "Denice AI Chrome Extension",
-    "version": "0.0.1",
+    "version": "0.0.1.0",
     "action": {
         "default_popup": "index.html"
     },
     "background": {
         "service_worker": "background.js"
     },
-    "permissions": [
-        "cookies",
-        "storage",
-        "tabs"
-    ],
-    "host_permissions": [
-        "http://localhost:3000/*",
-        "https://www.nuevco.com/*",
-        "https://www.dev.nuevco.com/*"
-    ],
     "content_scripts": [
         {
             "matches": ["<all_urls>"],

@@ -1,3 +1,5 @@
+import { PageData, SummarizedDocument, SummaryResponse } from "../model/documents";
+
 export class DeniceSummaryApi {
     private apiHost: string;
 
@@ -6,28 +8,34 @@ export class DeniceSummaryApi {
     }
 
     // Function to send a page for summarization
-    async summarizePage(content: string, url: string): Promise<string> {
+    async summarizePage(pageData: PageData): Promise<SummarizedDocument> {
         const response = await fetch(`${this.apiHost}/api/denice/summarize`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content, url }),
+            body: JSON.stringify(pageData),
             credentials: 'include',  // Include credentials in the request
         });
 
-        const result = await response.json();
+        const result = await response.json() as SummaryResponse;
+
+        const summary: SummarizedDocument = {
+            ...pageData,
+            ...result,
+        }
+        console.log('Document:', summary);
         if (response.ok && result.summary) {
-            return result.summary;
+            return summary;
         } else {
-            throw new Error(result.error || 'Failed to summarize the page.');
+            throw new Error('Failed to summarize the page.');
         }
     }
 
     // Function to save the summary
-    async saveSummary(summary: string, source: string, url: string): Promise<string> {
+    async saveSummary(summary: SummarizedDocument): Promise<string> {
         const response = await fetch(`${this.apiHost}/api/denice/summarize/save`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ summary, source, url }),
+            body: JSON.stringify(summary),
             credentials: 'include',  // Include credentials in the request
         });
 

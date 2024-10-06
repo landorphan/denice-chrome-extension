@@ -10,7 +10,7 @@ export const checkAuthStatus = async (): Promise<boolean> => {
     try {
         const response = await fetch(`${apiHost}/api/denice`, {
             method: 'GET',
-            credentials: 'include', // Include cookies in the request
+            credentials: 'include', 
         });
 
         // If response is OK, assume the user is authenticated
