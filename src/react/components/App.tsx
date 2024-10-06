@@ -28,7 +28,40 @@ const App = () => {
   const [loaded, setLoaded] = useState<boolean>(false);
   const apiHost = process.env.API_HOST || 'http://localhost:3000'; // Fallback in case environment variable is not set
   
+
   const api = new DeniceSummaryApi();
+  useEffect(() => {
+      const onMount = async () => {
+          // ON MOUNT
+          console.log('on mount');
+          const activeTab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
+              if (activeTab && activeTab.id) {
+                await chrome.action.setBadgeText({
+                  tabId: activeTab.id,
+                  text: "ON",
+              });
+              await chrome.action.setBadgeBackgroundColor({
+                  tabId: activeTab.id,
+                  color: '#99FF99',
+              });
+              chrome.runtime.connect({ name: "popup" });  
+              await chrome.scripting.executeScript({
+                files: ["activeTab.js"],
+                  target: { tabId: activeTab.id },
+              });          
+          }
+      }
+
+      const onUnmount = async () => {
+          // ON UNMOUNT
+      }
+
+      onMount().catch(console.error);
+      return () => {
+          onUnmount().catch(console.error);
+      }
+  }, []);
+
   useEffect(() => {
     document.body.style.overflow = "hidden";
   }, []);

@@ -24,6 +24,7 @@ export function extractLinkedInProfileUrl(linkedInUrl: string): string {
     return `${profileBase}${remainingPart}`;
 }
 
+console.log('Action Tab script loaded');
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.action === 'gatherPageData') {
         const pageContent = cleanHtml(document.documentElement.outerHTML);

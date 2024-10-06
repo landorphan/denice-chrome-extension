@@ -9,15 +9,18 @@
     "background": {
         "service_worker": "background.js"
     },
-    "content_scripts": [
-        {
-            "matches": ["<all_urls>"],
-            "js": ["contentScript.js"],
-            "run_at": "document_idle"  
-        }
+    "permissions": [
+        "activeTab",
+        "scripting"
+    ],
+    "host_permissions": [
+        "http://localhost:3000/*",
+        "https://www.nuevco.com/*",
+        "https://www.dev.nuevco.com/*"
     ],
     "icons": {
         "16": "assets/denice16.png",
+        "32": "assets/denice32.png",
         "48": "assets/denice48.png",
         "128": "assets/denice128.png"
     }
