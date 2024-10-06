@@ -5,12 +5,6 @@ export interface PageData {
     content: string;
 }
 
-export interface SummaryResponse {
-    title: string;
-    summary: string;
-    categories: string[];
-}
-
 export interface SummarizedDocument {
     _id: string;
     url: string;

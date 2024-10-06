@@ -1,4 +1,4 @@
-import { PageData, SummarizedDocument, SummaryResponse } from "../model/documents";
+import { PageData, SummarizedDocument } from "../model/documents";
 
 export class DeniceSummaryApi {
     private apiHost: string;
@@ -16,15 +16,11 @@ export class DeniceSummaryApi {
             credentials: 'include',  // Include credentials in the request
         });
 
-        const result = await response.json() as SummaryResponse;
+        const result = await response.json() as SummarizedDocument;
 
-        const summary: SummarizedDocument = {
-            ...pageData,
-            ...result,
-        }
-        console.log('Document:', summary);
+        console.log('Document:', result);
         if (response.ok && result.summary) {
-            return summary;
+            return result;
         } else {
             throw new Error('Failed to summarize the page.');
         }
