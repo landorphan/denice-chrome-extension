@@ -7,6 +7,12 @@ const fs = require('fs');
 function modifyManifest(host) {
     const manifestPath = path.resolve(__dirname, 'src', 'manifest.json');
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+
+    if (host.includes('dev.nuevco.com')) {
+        manifest.name = `${manifest.name} (Development Preview)`;
+    } else if (host.includes('localhost')) {
+        manifest.name = `${manifest.name} (Local Build)`;
+    }
   
     if (manifest.host_permissions) {
         manifest.host_permissions = manifest.host_permissions.filter(

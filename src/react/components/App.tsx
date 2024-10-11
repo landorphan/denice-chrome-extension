@@ -8,6 +8,7 @@ import AuthGuard from './AuthGuard';
 import { DeniceSummaryApi } from '../services/DeniceSummaryApi';
 import { DeepChat } from 'deep-chat-react'; 
 import { SummarizedDocument } from '../model/documents';
+import { ClearAll } from '@mui/icons-material';
 
 const theme = createTheme({
   palette: {
@@ -66,33 +67,38 @@ const App = () => {
     document.body.style.overflow = "hidden";
   }, []);
 
+  async function fetchData(reset: boolean = false): Promise<any[]> {
+    try {
+      if (!loaded || reset) {
+        console.log('fetching chat history');
+        let initUrl = `${apiHost}/api/chat/init?a=${ASSISTANT_NAME}`;
+        if (reset) {
+          initUrl += '&reset=true';
+        }
+        console.log('initUrl', initUrl);
+        const initResponse = await fetch(initUrl, {});
+        const data = await initResponse.json();
+        setLoaded(true);
+        setChatHistory(data);
+        return data;
+      } else {
+        console.log('chat history already loaded');
+      }
+    } catch (error) {
+      console.error(error);
+      setLoaded(true);
+      const data = [
+        {"text": "Hello, I'm Denice, your research assistant at Nuevco. I'm here to help you.", "role": "ai"}
+      ];
+      setChatHistory(data);
+      return data;
+    }
+    return [];
+  }
 
 
   // Fetch chat history from the API and set it
   useEffect(() => {
-    async function fetchData(): Promise<any[]> {
-      try {
-        if (!loaded) {
-          console.log('fetching chat history');
-          const initResponse = await fetch(`${apiHost}/api/chat/init?a=${ASSISTANT_NAME}`, {});
-          const data = await initResponse.json();
-          setLoaded(true);
-          setChatHistory(data);
-          return data;
-        } else {
-          console.log('chat history already loaded');
-        }
-      } catch (error) {
-        console.error(error);
-        setLoaded(true);
-        const data = [
-          {"text": "Hello, I'm Denice, your research assistant at Nuevco. I'm here to help you.", "role": "ai"}
-        ];
-        setChatHistory(data);
-        return data;
-      }
-      return [];
-    }
     fetchData().then((data) => {
         setLoaded(true);
     });
@@ -135,6 +141,10 @@ const App = () => {
       console.error('Unable to retrieve the active tab.');
     }
   };
+
+  const clearChat = async () => {
+      await fetchData(true);
+  }
 
   const saveSummary = async () => {
     if (summary && sourceContent && sourceUrl) {
@@ -216,24 +226,44 @@ const App = () => {
 
         {/* Toggle Summarize/Save Button */}
         {isAuthenticated && (
-          <IconButton
-            onClick={hasSummarized ? saveSummary : sendPageForSummary}
-            sx={{
-              position: 'fixed',
-              top: '20px',
-              right: '20px',
-              backgroundColor: hasSummarized ? '#4caf50' : '#1976d2',
-              color: '#fff',
-              borderRadius: '10px',
-              padding: '8px',
-              '&:hover': {
-                backgroundColor: hasSummarized ? '#388e3c' : '#1565c0',
-              },
-              zIndex: 1001,
-            }}
-          >
-            {hasSummarized ? <SaveIcon /> : <SummarizeIcon />}
-          </IconButton>
+          <>
+            <IconButton
+              onClick={clearChat}
+              sx={{
+                position: 'fixed',
+                top: '20px',
+                right: '65px',
+                backgroundColor: '#1976d2',
+                color: '#fff',
+                borderRadius: '10px',
+                padding: '8px',
+                '&:hover': { 
+                  backgroundColor: '#1565c0'
+                },
+                zIndex: 1001,
+              }}
+            >
+              <ClearAll />
+            </IconButton>
+            <IconButton
+              onClick={hasSummarized ? saveSummary : sendPageForSummary}
+              sx={{
+                position: 'fixed',
+                top: '20px',
+                right: '20px',
+                backgroundColor: hasSummarized ? '#4caf50' : '#1976d2',
+                color: '#fff',
+                borderRadius: '10px',
+                padding: '8px',
+                '&:hover': {
+                  backgroundColor: hasSummarized ? '#388e3c' : '#1565c0',
+                },
+                zIndex: 1001,
+              }}
+            >
+              {hasSummarized ? <SaveIcon /> : <SummarizeIcon />}
+            </IconButton>
+          </>
         )}
 
         <AuthGuard>
