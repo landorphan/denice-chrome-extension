@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Denice.ai",
     "description": "Denice.ai helps users summarize and store web documents into their personal store for later search and retrieval.",
-    "version": "0.0.1.0",
+    "version": "0.0.1.1",
     "action": {
         "default_popup": "index.html"
     },
